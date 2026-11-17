@@ -73,7 +73,7 @@ pipeline {
                 keepAll: false,
                 reportDir: 'playwright-report',
                 reportFiles: 'index.html',
-                reportName: 'Playwrite HTML Report',
+                reportName: 'Playwrite Local',
                 reportTitles: '',
                 useWrapperFileDirectly: true
               ])
@@ -98,6 +98,41 @@ pipeline {
           node_modules/.bin/netlify status
           node_modules/.bin/netlify deploy --dir=build --prod --no-build
         '''
+      }
+    }
+
+    stage('E2E') {
+      agent {
+        docker {
+          image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+          reuseNode true
+        }
+      }
+      environment {
+        CI_ENVIRONMENT_URL = 'https://wondrous-speculoos-0fd96c.netlify.app/'
+      }
+      steps {
+        sh '''
+          npm install serve
+          node_modules/.bin/serve -s build &
+          sleep 10
+          npx playwright test --reporter=html
+        '''
+      }
+      post {
+        always {
+          publishHTML([
+            allowMissing: false,
+            alwaysLinkToLastBuild: false,
+            icon: '',
+            keepAll: false,
+            reportDir: 'playwright-report',
+            reportFiles: 'index.html',
+            reportName: 'Playwrite E2E Product',
+            reportTitles: '',
+            useWrapperFileDirectly: true
+          ])
+        }
       }
     }
   }
